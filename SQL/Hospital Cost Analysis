@@ -1,0 +1,112 @@
+/*  
+
+Summary of Analysis 
+
+In this thorough analysis of sample hospital insurance data, I used SQL to analyze insightful patterns within the given table. 
+The initial focus on demographics revealed a gender distribution and average BMI for males and females, offering a foundational 
+understanding of the patient population. The exploration of total costs and average BMI across different regions highlighted potential
+health variations, aiding in targeted resource allocation. The examination of smoking prevalence by region, laid the groundwork for
+tailored health promotion initiatives. The distinction between smokers and non-smokers provided insights into the financial aspects 
+of healthcare, while age-based charge categorization shed light on the economic implications at different life stages. 
+This analysis equips healthcare professionals with valuable information for informed decision-making, enhancing resource efficiency, 
+and financial planning. 
+
+*/
+
+-- Display Data From 'Cost' Table
+
+SELECT *  FROM `hospital-data1.insurance.cost` 
+
+-- Total Male vs. Females 
+
+SELECT sex, COUNT (*) AS Total
+FROM `hospital-data1.insurance.cost`
+GROUP BY sex
+ORDER BY Total DESC;
+
+-- Avg. BMI --> Male vs. Female
+
+SELECT sex, ROUND(AVG(bmi),2) AS AvgBMI
+FROM `hospital-data1.insurance.cost`
+GROUP BY sex; 
+
+
+-- Total Costs Per Region 
+
+SELECT region,
+ROUND(SUM(charges), 2) AS TotalCost
+FROM `hospital-data1.insurance.cost`
+GROUP BY region
+ORDER BY TotalCost DESC;
+
+-- Average BMI Per Region 
+SELECT region,
+ROUND(AVG(bmi), 2) AS AvgBMI
+FROM `hospital-data1.insurance.cost`
+GROUP BY region
+ORDER BY AvgBMI DESC;
+
+-- Total Charges Per BMI Range
+SELECT
+  CASE
+    WHEN bmi < 18.5 THEN 'Underweight'
+    WHEN bmi BETWEEN 18.5 AND 24.9 THEN 'Normal'
+    WHEN bmi BETWEEN 25 AND 29.9 THEN 'Overweight'
+    WHEN bmi >= 30 THEN 'Obese'
+  END AS BMI_Category,
+  ROUND(SUM(charges), 2) AS TotalCharges
+FROM `hospital-data1.insurance.cost`
+GROUP BY BMI_Category
+ORDER BY TotalCharges DESC;
+
+
+-- Smokers Per Region 
+
+WITH Smoker AS (
+  SELECT region,
+         COUNT(CASE WHEN smoker = TRUE THEN 1 END) AS SmokerCount,
+         COUNT(*) AS TotalCount
+  FROM `hospital-data1.insurance.cost`
+  GROUP BY region
+)
+SELECT region,
+       Smoker.SmokerCount,
+       Smoker.TotalCount,
+       ROUND(Smoker.SmokerCount / Smoker.TotalCount * 100, 2) AS PercSmoke
+FROM Smoker
+ORDER BY PercSmoke DESC;
+
+
+-- Total Charges for Smokers vs. Non-Smokers
+SELECT
+  CASE smoker WHEN TRUE THEN 'Smoker' ELSE 'Non-Smoker' END AS Smoker,
+  ROUND(SUM(charges),2) AS TotalCharges
+FROM `hospital-data1.insurance.cost`
+GROUP BY Smoker
+ORDER BY Smoker DESC;
+
+-- Max/Min Age for Data 
+SELECT
+  MAX(age) AS MaxAge,
+  MIN(age) AS MinAge
+FROM `hospital-data1.insurance.cost`;
+
+-- Total Charges Per Age Range
+SELECT
+  age_group AS AgeGroup,
+  ROUND(SUM(charges),2) AS TotalCharges
+FROM (
+  SELECT
+    CASE
+      WHEN age < 20 THEN '0-19'
+      WHEN age BETWEEN 20 AND 29 THEN '20-29'
+      WHEN age BETWEEN 30 AND 39 THEN '30-39'
+      WHEN age BETWEEN 40 AND 49 THEN '40-49'
+      WHEN age > 49 THEN '50+'
+    END AS age_group,
+    age,
+    charges
+  FROM `hospital-data1.insurance.cost`
+) AS grouped_data
+GROUP BY age_group
+ORDER BY age_group;
